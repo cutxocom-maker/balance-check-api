@@ -10,9 +10,6 @@ RUN apt-get update && apt-get install -y \
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# Set default port (Railway will override with $PORT)
-ENV PORT=8080
-
 WORKDIR /app
 
 # Copy requirements FIRST
@@ -42,5 +39,8 @@ RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
 # Copy app
 COPY app.py .
 
-# Use port 8080 (or Railway's $PORT if provided)
-CMD python -m gunicorn --bind 0.0.0.0:${PORT:-8080} --timeout 120 app:app
+# Create startup script
+RUN echo '#!/bin/bash\nexec python -m gunicorn --bind 0.0.0.0:${PORT:-8080} --timeout 120 app:app' > /start.sh && \
+    chmod +x /start.sh
+
+CMD ["/bin/bash", "/start.sh"]
