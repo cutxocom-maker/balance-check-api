@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 import subprocess
 import os
 import re
+import tempfile
+import csv
 
 app = Flask(__name__)
 
@@ -34,30 +36,38 @@ def check():
         return jsonify({"error": "Need provider and card_number"}), 400
     
     provider = data['provider']
-    card = data['card_number']
+    card = str(data['card_number']).strip()
     
-    # Build command - balance-check expects: provider card_number [options]
-    cmd = ["balance-check", provider, card]
-    
-    # Build options string
-    options = []
-    if data.get('pin'): 
-        options.extend(["-p", str(data['pin'])])
-    if data.get('exp_month'): 
-        options.extend(["-m", str(data['exp_month'])])
-    if data.get('exp_year'): 
-        options.extend(["-y", str(data['exp_year'])])
-    if data.get('cvv'): 
-        options.extend(["-v", str(data['cvv'])])
-    
-    cmd.extend(options)
+    # Create temp CSV file (balance-check expects CSV input)
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        writer = csv.writer(f)
+        
+        # Determine CSV headers based on provider
+        if data.get('exp_month'):  # Prepaid card
+            writer.writerow(['card_number', 'exp_month', 'exp_year', 'cvv'])
+            writer.writerow([
+                card,
+                data.get('exp_month', ''),
+                data.get('exp_year', ''),
+                data.get('cvv', '')
+            ])
+        else:  # Gift card with PIN
+            writer.writerow(['card_number', 'pin'])
+            writer.writerow([
+                card,
+                data.get('pin', '')
+            ])
+        temp_file = f.name
     
     try:
+        # Run balance-check with CSV file
+        cmd = ["balance-check", provider, temp_file]
+        
         result = subprocess.run(
-            cmd, 
-            capture_output=True, 
-            text=True, 
-            timeout=90
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120
         )
         
         output = result.stdout + result.stderr
@@ -70,13 +80,19 @@ def check():
             "provider": provider,
             "card_last_four": card[-4:] if len(card) >= 4 else card,
             "balance": float(balance_match.group(1).replace(',', '')) if balance_match else None,
-            "raw_output": output[:2000]
+            "raw_output": output[:3000]
         })
         
     except subprocess.TimeoutExpired:
         return jsonify({"error": "Request timeout"}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        # Clean up temp file
+        try:
+            os.unlink(temp_file)
+        except:
+            pass
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
