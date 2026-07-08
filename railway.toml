@@ -2,5 +2,5 @@
 builder = "DOCKERFILE"
 
 [deploy]
-startCommand = "python -m gunicorn --bind 0.0.0.0:8080 --timeout 120 app:app"
+startCommand = "/bin/bash /start.sh"
 restartPolicyType = "on_failure"
