@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 import subprocess
 import os
 import re
-import shlex
 
 app = Flask(__name__)
 
@@ -37,22 +36,21 @@ def check():
     provider = data['provider']
     card = data['card_number']
     
-    # Sanitize inputs to prevent command injection
-    card = re.sub(r'[^\d]', '', card)  # Keep only digits
+    # Build command - balance-check expects: provider card_number [options]
+    cmd = ["balance-check", provider, card]
     
-    # Build command as list (safer)
-    cmd = ["balance-check", provider, "-c", card]
-    
+    # Build options string
+    options = []
     if data.get('pin'): 
-        pin = re.sub(r'[^\d]', '', str(data['pin']))
-        cmd.extend(["-p", pin])
+        options.extend(["-p", str(data['pin'])])
     if data.get('exp_month'): 
-        cmd.extend(["-m", str(data['exp_month'])])
+        options.extend(["-m", str(data['exp_month'])])
     if data.get('exp_year'): 
-        cmd.extend(["-y", str(data['exp_year'])])
+        options.extend(["-y", str(data['exp_year'])])
     if data.get('cvv'): 
-        cvv = re.sub(r'[^\d]', '', str(data['cvv']))
-        cmd.extend(["-v", cvv])
+        options.extend(["-v", str(data['cvv'])])
+    
+    cmd.extend(options)
     
     try:
         result = subprocess.run(
@@ -64,22 +62,22 @@ def check():
         
         output = result.stdout + result.stderr
         
-        # Parse balance
-        balance_match = re.search(r'\$([\d,]+\.?\d{0,2})', output)
+        # Parse balance from output
+        balance_match = re.search(r'Balance[:\s]*\$?([\d,]+\.?\d{0,2})', output, re.IGNORECASE)
         
         return jsonify({
             "success": result.returncode == 0,
             "provider": provider,
             "card_last_four": card[-4:] if len(card) >= 4 else card,
-            "balance": balance_match.group(1).replace(',', '') if balance_match else None,
-            "raw_output": output[:1000]
+            "balance": float(balance_match.group(1).replace(',', '')) if balance_match else None,
+            "raw_output": output[:2000]
         })
         
     except subprocess.TimeoutExpired:
-        return jsonify({"error": "Request timeout - card check took too long"}), 504
+        return jsonify({"error": "Request timeout"}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
