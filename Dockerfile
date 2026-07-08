@@ -29,20 +29,13 @@ RUN pip install --no-cache-dir \
     python-anticaptcha==1.0.0 \
     Pillow==10.1.0
 
-# Clone and fix balance-check (PYTHON METHOD - 100% works)
+# Clone and fix balance-check (FIX: modify version.py file)
 RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
     cd /tmp/bc && \
-    python3 << 'EOF'
-import re
-with open('setup.py', 'r') as f:
-    content = f.read()
-print("BEFORE:", [line for line in content.split('\n') if 'version' in line.lower()])
-content = re.sub(r"version\s*=\s*['\"]dev['\"]", "version='1.0.0'", content)
-with open('setup.py', 'w') as f:
-    f.write(content)
-print("AFTER:", [line for line in content.split('\n') if 'version' in line.lower()])
-EOF
-RUN cd /tmp/bc && pip install --no-cache-dir . && rm -rf /tmp/bc
+    echo "version = '1.0.0'" > balance_check/version.py && \
+    cat balance_check/version.py && \
+    pip install --no-cache-dir . && \
+    rm -rf /tmp/bc
 
 # Copy app
 COPY app.py .
