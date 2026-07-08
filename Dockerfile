@@ -29,10 +29,10 @@ RUN pip install --no-cache-dir \
     python-anticaptcha==1.0.0 \
     Pillow==10.1.0
 
-# Clone and fix balance-check (FIX: modify version.py file)
+# Clone and fix balance-check (FIXED: __version__ with double underscores)
 RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
     cd /tmp/bc && \
-    echo "version = '1.0.0'" > balance_check/version.py && \
+    echo "__version__ = '1.0.0'" > balance_check/version.py && \
     cat balance_check/version.py && \
     pip install --no-cache-dir . && \
     rm -rf /tmp/bc
