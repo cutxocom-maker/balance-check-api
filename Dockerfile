@@ -28,7 +28,7 @@ RUN pip install \
 # Clone and fix balance-check (sed fixes the broken "dev" version)
 RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
     cd /tmp/bc && \
-    sed -i 's/version="dev"/version="1.0.0"/g' setup.py && \
+    sed -i "s/version=['\"]dev['\"]/version='1.0.0'/g" setup.py && \
     pip install . && \
     rm -rf /tmp/bc
 
