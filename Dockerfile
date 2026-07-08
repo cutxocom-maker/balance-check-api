@@ -29,15 +29,15 @@ RUN pip install --no-cache-dir \
     python-anticaptcha==1.0.0 \
     Pillow==10.1.0
 
-# Clone and fix balance-check (FIXED: __version__ with double underscores)
+# Clone and fix balance-check
 RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
     cd /tmp/bc && \
     echo "__version__ = '1.0.0'" > balance_check/version.py && \
-    cat balance_check/version.py && \
     pip install --no-cache-dir . && \
     rm -rf /tmp/bc
 
 # Copy app
 COPY app.py .
 
-CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "120", "app:app"]
+# Use shell form to expand $PORT
+CMD python -m gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app
