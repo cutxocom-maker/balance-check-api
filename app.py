@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import subprocess
 import os
+import re
 
 app = Flask(__name__)
 
@@ -8,7 +9,10 @@ app = Flask(__name__)
 def home():
     return jsonify({
         "service": "Balance Check API",
-        "usage": "POST /check with JSON body",
+        "endpoints": {
+            "check": "POST /check",
+            "providers": "GET /providers"
+        },
         "example": {
             "provider": "blackhawk",
             "card_number": "4111111111111111",
@@ -20,7 +24,6 @@ def home():
 
 @app.route('/providers')
 def providers():
-    """List supported providers"""
     return jsonify({
         "providers": [
             "blackhawk", "spafinder", "gamestop", 
@@ -31,7 +34,6 @@ def providers():
 
 @app.route('/check', methods=['POST'])
 def check():
-    """Check card balance"""
     data = request.get_json()
     
     if not data or 'provider' not in data or 'card_number' not in data:
@@ -43,7 +45,6 @@ def check():
     # Build command
     cmd = ["balance-check", provider, "-c", card]
     
-    # Add optional fields
     if data.get('pin'): 
         cmd.extend(["-p", data['pin']])
     if data.get('exp_month'): 
@@ -53,7 +54,6 @@ def check():
     if data.get('cvv'): 
         cmd.extend(["-v", data['cvv']])
     
-    # Run balance-check CLI
     try:
         result = subprocess.run(
             cmd, 
@@ -65,8 +65,7 @@ def check():
         
         output = result.stdout or result.stderr
         
-        # Parse balance from output
-        import re
+        # Parse balance
         balance_match = re.search(r'\$([\d,]+\.?\d{0,2})', output)
         
         return jsonify({
@@ -74,14 +73,14 @@ def check():
             "provider": provider,
             "card_last_four": card[-4:],
             "balance": balance_match.group(1).replace(',', '') if balance_match else None,
-            "output": output[:500]  # limit output
+            "output": output[:500]
         })
         
     except subprocess.TimeoutExpired:
-        return jsonify({"error": "Timeout - card check took too long"}), 504
+        return jsonify({"error": "Timeout"}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port)
