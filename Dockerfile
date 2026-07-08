@@ -25,10 +25,18 @@ RUN pip install \
     python-anticaptcha==1.0.0 \
     Pillow==10.1.0
 
-# Clone and fix balance-check (FIXED: uses single quotes)
+# Clone and fix balance-check (ROBUST: handles any quote type)
 RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
     cd /tmp/bc && \
-    sed -i "s/version='dev'/version='1.0.0'/g" setup.py && \
+    python3 -c "
+import re
+with open('setup.py', 'r') as f:
+    content = f.read()
+content = re.sub(r\"version\\s*=\\s*['\\\"]dev['\\\"]\", \"version='1.0.0'\", content)
+with open('setup.py', 'w') as f:
+    f.write(content)
+print('Fixed version in setup.py')
+" && \
     pip install . && \
     rm -rf /tmp/bc
 
