@@ -12,7 +12,7 @@ ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 WORKDIR /app
 
-# Install dependencies first (avoid the broken setup.py)
+# Install dependencies first
 RUN pip install \
     selenium==4.15.2 \
     requests==2.31.0 \
@@ -25,7 +25,7 @@ RUN pip install \
     python-anticaptcha==1.0.0 \
     Pillow==10.1.0
 
-# Clone and install balance-check manually (bypass broken version)
+# Clone and fix balance-check (sed fixes the broken "dev" version)
 RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
     cd /tmp/bc && \
     sed -i 's/version="dev"/version="1.0.0"/g' setup.py && \
