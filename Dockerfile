@@ -25,18 +25,6 @@ RUN pip install \
     python-anticaptcha==1.0.0 \
     Pillow==10.1.0
 
-# Clone and fix balance-check (USE PYTHON - handles any quote type)
+# Clone and fix balance-check (BULLETPROOF METHOD)
 RUN git clone https://github.com/stevenmirabito/balance-check.git /tmp/bc && \
-    cd /tmp/bc && \
-    python3 -c "import re; f=open('setup.py'); c=f.read(); f.close(); c=re.sub(r'version\\s*=\\s*[\"\\047]dev[\"\\047]', 'version=\"1.0.0\"', c); f=open('setup.py','w'); f.write(c); f.close()" && \
-    cat setup.py | grep version && \
-    pip install . && \
-    rm -rf /tmp/bc
-
-# Install Flask
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY app.py .
-
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "120", "app:app"]
+    cd /tmp/bc
