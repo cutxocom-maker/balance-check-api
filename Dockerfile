@@ -16,7 +16,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install balance-check dependencies
+# Install balance-check dependencies (FIXED: python3-anticaptcha)
 RUN pip install --no-cache-dir \
     selenium==4.15.2 \
     requests==2.31.0 \
@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir \
     cerberus==1.3.4 \
     colorama==0.4.6 \
     tqdm==4.66.1 \
-    python-anticaptcha==1.0.0 \
+    python3-anticaptcha==1.7.1 \
     Pillow==10.1.0
 
 # Clone and fix balance-check
